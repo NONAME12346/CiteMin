@@ -27,13 +27,35 @@ apiClient.interceptors.request.use(
 // Интерцептор для обработки ошибок
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Токен истек или невалиден
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            window.location.href = '/login';
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (refreshToken) {
+                    // Попытка обновить токен
+                    const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+                        refresh: refreshToken
+                    });
+
+                    const newAccessToken = response.data.access;
+                    localStorage.setItem('access_token', newAccessToken);
+
+                    // Повторяем оригинальный запрос с новым токеном
+                    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                    return apiClient(originalRequest);
+                }
+            } catch (refreshError) {
+                // Если refresh не удался, разлогиниваем пользователя
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                window.location.href = '/login';
+            }
         }
+
         return Promise.reject(error);
     }
 );
