@@ -12,7 +12,7 @@ from .serializers import (
     UserProfileSerializer,
     FileUploadSerializer
 )
-
+from .utils.logger import log_user_action, log_api_call, log_security_event
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -25,6 +25,12 @@ def register_view(request):
 
         if serializer.is_valid():
             user = serializer.save()
+
+            # Логируем успешную регистрацию
+            log_user_action(user, 'registration_success', {
+                'username': user.username,
+                'email': user.email
+            })
 
             # Создаем JWT токены
             refresh = RefreshToken.for_user(user)
@@ -41,6 +47,12 @@ def register_view(request):
                     'access': str(refresh.access_token),
                 }
             }, status=status.HTTP_201_CREATED)
+        else:
+            # Логируем ошибку регистрации
+            log_security_event('registration_failed', request, {
+                'errors': serializer.errors,
+                'username_attempt': request.data.get('username')
+            })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -66,6 +78,9 @@ def login_view(request):
                     user.last_login = timezone.now()
                     user.save()
 
+                    # Логируем успешный вход
+                    log_user_action(user, 'login_success')
+
                     # Создаем JWT токены
                     refresh = RefreshToken.for_user(user)
 
@@ -82,13 +97,14 @@ def login_view(request):
                         }
                     }, status=status.HTTP_200_OK)
                 else:
+                    # Логируем попытку входа в деактивированный аккаунт
+                    log_security_event('login_inactive_account', request, {
+                        'username': username
+                    })
                     return Response({
                         'error': 'Аккаунт деактивирован'
                     }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({
-                    'error': 'Неверное имя пользователя или пароль'
-                }, status=status.HTTP_400_BAD_REQUEST)
+
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
