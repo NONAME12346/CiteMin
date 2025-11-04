@@ -5,10 +5,8 @@
 *.pyd
 .Python
 env/
-venv/
+
 ENV/
-env.bak/
-venv.bak/
 *.sqlite3
 *.db
 *.log
@@ -16,6 +14,14 @@ logs/
 media/
 staticfiles/
 .DS_Store
+
+# Virtual Environment
+.venv/
+venv/
+env/
+venv/
+env.bak/
+venv.bak/
 
 # React
 frontend/node_modules/
