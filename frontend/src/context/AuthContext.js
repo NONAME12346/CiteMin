@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [token, setToken] = useState(localStorage.getItem('access_token'));
+    const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
     // Проверка аутентификации при загрузке приложения
     useEffect(() => {
@@ -57,11 +58,13 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
+            setRegistrationSuccess(false);
             const response = await authService.register(userData);
             const { user: newUser, tokens } = response;
 
             setUser(newUser);
             setToken(tokens.access);
+            setRegistrationSuccess(true);
 
             // Сохраняем токен в localStorage
             localStorage.setItem('access_token', tokens.access);
@@ -69,6 +72,7 @@ export const AuthProvider = ({ children }) => {
 
             return { success: true, user: newUser };
         } catch (error) {
+            setRegistrationSuccess(false);
             return {
                 success: false,
                 error: error.response?.data || 'Ошибка регистрации'
@@ -79,6 +83,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         setToken(null);
+        setRegistrationSuccess(false);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
     };
@@ -90,6 +95,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         loading,
+        registrationSuccess,
         isAuthenticated: !!user
     };
 
