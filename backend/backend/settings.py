@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     'users',
 ]
 
-# AUTH_USER_MODEL = 'users.CustomUser'
+AUTH_USER_MODEL = 'users.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -111,7 +111,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
-    # # Наш кастомный валидатор
+    # Наш кастомный валидатор (ВРЕМЕННО ЗАКОММЕНТИРУЙТЕ ДЛЯ ТЕСТА)
     # {
     #     'NAME': 'users.validators.PasswordStrengthValidator',
     # },

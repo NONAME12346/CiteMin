@@ -3,18 +3,27 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
 
-class PasswordValidator:
+class PasswordStrengthValidator:
+    """
+    Валидатор силы пароля по требованиям:
+    - Длина >= 8 символов
+    - Заглавные и строчные буквы
+    - Цифры
+    - Спецсимволы
+    - Отсутствие простых последовательностей
+    """
+
     def __init__(self):
         self.common_sequences = [
             'qwertyuiop', 'asdfghjkl', 'zxcvbnm',
             '1234567890', 'password', 'admin', '12345678',
-            'qwerty123', '1q2w3e4r', 'qazwsxedc'
+            'qwerty123', '1q2w3e4r', 'qazwsxedc', 'iloveyou'
         ]
 
     def validate(self, password, user=None):
         errors = []
 
-        # Проверка длины
+        # Проверка длины (>= 8 символов)
         if len(password) < 8:
             errors.append(_("Пароль должен содержать минимум 8 символов."))
 
@@ -38,7 +47,8 @@ class PasswordValidator:
         password_lower = password.lower()
         for sequence in self.common_sequences:
             if sequence in password_lower:
-                errors.append(_("Пароль содержит простую последовательность символов."))
+                errors.append(
+                    _("Пароль содержит простую последовательность символов: %(sequence)s") % {'sequence': sequence})
                 break
 
         if errors:
@@ -50,13 +60,6 @@ class PasswordValidator:
             "- Минимум 8 символов\n"
             "- Заглавные и строчные буквы\n"
             "- Цифры\n"
-            "- Специальные символы\n"
-            "- Не должен содержать простых последовательностей"
+            "- Специальные символы (!@#$%^&* и т.д.)\n"
+            "- Не должен содержать простых последовательностей (qwerty, 123456 и т.п.)"
         )
-
-
-# Альтернативная версия для использования в формах
-class PasswordStrengthValidator:
-    def __call__(self, password):
-        validator = PasswordValidator()
-        return validator.validate(password)
