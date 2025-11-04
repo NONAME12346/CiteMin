@@ -230,6 +230,7 @@ const RegisterPage = () => {
         return null;
     };
 
+
     const isFieldValid = (fieldName) => {
         if (fieldName === 'password') {
             // Для поля пароля: зеленый только если пароль валидный И поле было затронуто
