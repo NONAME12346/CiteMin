@@ -4,6 +4,7 @@ from .models import CustomUser
 from .validators import PasswordStrengthValidator
 import json
 from .utils.encryption import encryptor
+from .models import WeatherData
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -122,3 +123,8 @@ class FileUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError("Файл слишком большой. Максимальный размер: 10MB.")
 
         return value
+
+class WeatherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeatherData
+        fields = ['id', 'date', 'temperature', 'description', 'source_url']

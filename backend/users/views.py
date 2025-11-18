@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from .models import WeatherData
+from .serializers import WeatherSerializer
 
 # Импортируем модели и сериализаторы
 from .models import CustomUser, UserFile
@@ -208,3 +210,24 @@ def user_files_view(request):
     } for f in files]
 
     return Response(files_data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def weather_view(request):
+    """
+    Возвращает текущую погоду и историю наблюдений
+    """
+    # Получаем последние 20 записей для графика (отсортированы по дате убывания)
+    # Используем [:20][::-1] чтобы получить 20 последних, но развернуть их
+    # в хронологическом порядке (слева направо) для графика
+    queryset = WeatherData.objects.all()[:20]
+    history_data = WeatherSerializer(queryset, many=True).data
+
+    # Текущая погода - это самая первая запись (так как сортировка -date)
+    current_weather = history_data[0] if history_data else None
+
+    return Response({
+        'current': current_weather,
+        'history': history_data[::-1]  # Разворачиваем список для графика
+    })
