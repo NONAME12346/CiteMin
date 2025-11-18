@@ -109,3 +109,20 @@ class UserFile(models.Model):
     def get_decrypted_data(self):
         """Получение дешифрованных данных файла"""
         return encryptor.decrypt_data(self.encrypted_data)
+
+class WeatherData(models.Model):
+    """
+    Модель для хранения истории погоды
+    """
+    date = models.DateTimeField(auto_now_add=True, verbose_name="Время парсинга")
+    temperature = models.CharField(max_length=50, verbose_name="Температура")
+    description = models.CharField(max_length=255, verbose_name="Описание (ясно/облачно)")
+    source_url = models.URLField(verbose_name="Источник")
+
+    class Meta:
+        verbose_name = 'Данные погоды'
+        verbose_name_plural = 'История погоды'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.date.strftime('%Y-%m-%d %H:%M')} - {self.temperature}"
