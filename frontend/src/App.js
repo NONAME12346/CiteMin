@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import WeatherDashboard from './pages/WeatherDashboard'; // <-- НОВЫЙ ИМПОРТ
 import './App.css';
 
 // Компонент для защищенных маршрутов
@@ -83,23 +84,16 @@ function App() {
                                 </PublicRoute>
                             }
                         />
-                        {/* Добавим позже */}
-                        {/* <Route
-                            path="/upload"
+                        {/* --- НОВЫЙ ЗАЩИЩЕННЫЙ МАРШРУТ (LABA 4) --- */}
+                        <Route
+                            path="/dashboard"
                             element={
                                 <ProtectedRoute>
-                                    <UploadPage />
+                                    <WeatherDashboard />
                                 </ProtectedRoute>
                             }
                         />
-                        <Route
-                            path="/files"
-                            element={
-                                <ProtectedRoute>
-                                    <FilesPage />
-                                </ProtectedRoute>
-                            }
-                        /> */}
+                        {/* ------------------------------------------- */}
                         <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
                 </div>

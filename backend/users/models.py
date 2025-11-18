@@ -64,15 +64,27 @@ class CustomUser(AbstractUser):
 
     def get_decrypted_data(self):
         """Метод для получения дешифрованных текстовых данных"""
-        # --- РЕАЛИЗОВАТЬ ---
         if not self.encrypted_data:
             return {}
         try:
-            decrypted_bytes = encryptor.decrypt_data(self.encrypted_data)
+            encrypted_data = self.encrypted_data
+
+            # --- ИСПРАВЛЕНИЕ: ПРОВЕРКА ТИПА ---
+            # BinaryField иногда возвращает str вместо bytes. Конвертируем обратно:
+            if isinstance(encrypted_data, str):
+                encrypted_data = encrypted_data.encode('latin-1')  # Используй кодировку, в которой сохраняет Django
+            # ---------------------------------
+
+            decrypted_bytes = encryptor.decrypt_data(encrypted_data)
+
+            # Если decryptor вернул пустые байты, значит данные пустые
+            if decrypted_bytes == b'':
+                return {}
+
             data_json = decrypted_bytes.decode('utf-8')
             return json.loads(data_json)
         except Exception as e:
-            # Обработка ошибки дешифровки
+            # Выводим ошибку, чтобы понять, что пошло не так
             print(f"Failed to decrypt data: {e}")
             return {}
 

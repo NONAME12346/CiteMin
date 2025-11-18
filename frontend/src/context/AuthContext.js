@@ -88,6 +88,18 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('refresh_token');
     };
 
+    // --- НОВАЯ ФУНКЦИЯ ДЛЯ LABA 4 ---
+    const fetchWeather = async () => {
+        try {
+            const data = await authService.getWeather();
+            return data;
+        } catch (error) {
+            console.error('Ошибка получения данных погоды:', error);
+            throw error;
+        }
+    };
+    // -------------------------------
+
     const value = {
         user,
         token,
@@ -96,7 +108,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         loading,
         registrationSuccess,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
+        fetchWeather, // <-- ДОБАВИТЬ В КОНТЕКСТ
     };
 
     return (

@@ -103,7 +103,15 @@ const authService = {
     async getUserFiles() {
         const response = await apiClient.get('/files/');
         return response.data;
-    }
+    },
+
+    // --- НОВАЯ ФУНКЦИЯ ДЛЯ LABA 4 ---
+    async getWeather() {
+        // Вызываем API-эндпоинт, который мы создали
+        const response = await apiClient.get('/weather/');
+        return response.data;
+    },
+    // -------------------------------
 };
 
 export default authService;

@@ -21,6 +21,11 @@ const HomePage = () => {
                             <p>Email: {user.email}</p>
                         </div>
                         <div className="action-buttons">
+                            {/* --- НОВАЯ ССЫЛКА ДЛЯ LABA 4 --- */}
+                            <Link to="/dashboard" className="btn btn-info" style={{ marginRight: '15px' }}>
+                                Погодный Дашборд 🌤️
+                            </Link>
+                            {/* ------------------------------- */}
                             <button onClick={logout} className="btn btn-danger">
                                 Выйти
                             </button>
@@ -44,4 +49,4 @@ const HomePage = () => {
     );
 };
 
-export default HomePage;  // Убедитесь что это default export
+export default HomePage;
