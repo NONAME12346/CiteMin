@@ -29,6 +29,9 @@ const RegisterPage = () => {
         password2: false
     });
 
+    const [imageFile, setImageFile] = useState(null);
+    const [audioFile, setAudioFile] = useState(null);
+
     const { register } = useAuth();
     const navigate = useNavigate();
 
@@ -96,6 +99,16 @@ const RegisterPage = () => {
 
         // Валидация на blur
         validateField(name, formData[name]);
+    };
+
+
+    const handleFileChange = (e) => {
+        const { name, files } = e.target;
+        if (name === 'image') {
+            setImageFile(files[0] || null);
+        } else if (name === 'audio') {
+            setAudioFile(files[0] || null);
+        }
     };
 
 
@@ -186,34 +199,58 @@ const RegisterPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
 
-        // Отмечаем все поля как touched для показа ошибок
-        setTouched({
-            username: true,
-            email: true,
-            password: true,
-            password2: true
-        });
-
+        // Запускаем валидацию перед отправкой
         if (!validateForm()) {
-            setLoading(false);
             return;
         }
 
-        const result = await register(formData);
+        setLoading(true);
+        setErrors({});
 
-        if (result.success) {
-            navigate('/');
-        } else {
-            if (result.error && typeof result.error === 'object') {
-                setErrors(result.error);
-            } else {
-                setErrors({ general: result.error });
-            }
+        // Создаем объект FormData для отправки файлов и текста
+        const registrationData = new FormData();
+
+        // Добавляем текстовые поля
+        registrationData.append('username', formData.username);
+        registrationData.append('email', formData.email);
+        registrationData.append('password', formData.password);
+        registrationData.append('password2', formData.password2);
+
+        // Добавляем необязательные поля, если они заполнены
+        if (formData.first_name) registrationData.append('first_name', formData.first_name);
+        if (formData.last_name) registrationData.append('last_name', formData.last_name);
+
+        // Добавляем файлы, только если они были выбраны пользователем
+        if (imageFile) {
+            registrationData.append('image', imageFile);
         }
 
-        setLoading(false);
+        if (audioFile) {
+            registrationData.append('audio', audioFile);
+        }
+
+        try {
+            // Отправляем FormData в функцию регистрации
+            // (authService.register должен быть обновлен, как мы обсуждали)
+            await register(registrationData);
+
+            // При успешной регистрации переходим на страницу входа
+            navigate('/login');
+        } catch (error) {
+            console.error('Registration failed:', error);
+
+            // Обработка ошибок от сервера
+            if (error.response && error.response.data) {
+                setErrors(error.response.data);
+            } else {
+                setErrors({
+                    non_field_errors: ['Произошла ошибка при соединении с сервером. Попробуйте позже.']
+                });
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getFieldError = (fieldName) => {
@@ -362,6 +399,33 @@ const RegisterPage = () => {
                             disabled={loading}
                         />
                     </div>
+
+                    <div className="form-group">
+                        <label htmlFor="image">Аватар (изображение)</label>
+                        <input
+                            type="file"
+                            id="image"
+                            name="image"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            disabled={loading}
+                            className="form-control"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="audio">Аудио-файл</label>
+                        <input
+                            type="file"
+                            id="audio"
+                            name="audio"
+                            accept="audio/*"
+                            onChange={handleFileChange}
+                            disabled={loading}
+                            className="form-control"
+                        />
+                    </div>
+
 
                     <div className="form-group">
                         <label htmlFor="password">Пароль *</label>

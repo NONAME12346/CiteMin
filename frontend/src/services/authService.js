@@ -62,8 +62,12 @@ apiClient.interceptors.response.use(
 
 const authService = {
     // Регистрация
-    async register(userData) {
-        const response = await apiClient.post('/register/', userData);
+    async register(formData) {
+        const response = await apiClient.post('/register/', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return response.data;
     },
 

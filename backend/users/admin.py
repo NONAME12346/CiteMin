@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import CustomUser, UserFile
 
 
 @admin.register(CustomUser)
@@ -16,3 +16,20 @@ class CustomUserAdmin(UserAdmin):
     )
 
     readonly_fields = ('date_joined', 'last_login')
+
+
+@admin.register(UserFile)
+class UserFileAdmin(admin.ModelAdmin):
+    list_display = ('original_name', 'user', 'file_size', 'content_type', 'uploaded_at')
+    list_filter = ('content_type', 'uploaded_at')
+    search_fields = ('original_name', 'user__username', 'description')
+    readonly_fields = ('uploaded_at',)
+
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('user', 'original_name', 'file_size', 'content_type')
+        }),
+        ('Дополнительно', {
+            'fields': ('description', 'uploaded_at', 'encrypted_data')
+        }),
+    )

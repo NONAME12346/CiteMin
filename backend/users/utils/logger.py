@@ -20,10 +20,11 @@ def log_user_action(user, action, details=None):
     business_logger.info(f"USER_ACTION: {log_data}")
 
 
-def log_api_call(view_name, request, extra_info=None):
+def log_api_call(request, view_name, extra_info=None):
     """
     Логирование вызовов API
     """
+    # ИСПРАВЛЕНО: теперь request идет первым аргументом
     log_data = {
         'view': view_name,
         'method': request.method,

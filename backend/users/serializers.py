@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser
 from .validators import PasswordStrengthValidator
+import json
+from .utils.encryption import encryptor
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -29,13 +31,40 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # 1. Извлекаем пароль
         validated_data.pop('password2')
         password = validated_data.pop('password')
 
-        user = CustomUser.objects.create(**validated_data)
-        user.set_password(password)
-        user.save()
+        # 2. Извлекаем поля для шифрования
+        # (username оставляем в validated_data, он не шифруется)
+        email = validated_data.pop('email')
+        first_name = validated_data.pop('first_name', '')
+        last_name = validated_data.pop('last_name', '')
 
+        # 3. Создаем пользователя только с НЕШИФРУЕМЫМИ полями
+        # (validated_data теперь содержит только 'username')
+        user = CustomUser.objects.create(**validated_data)
+
+        # 4. Устанавливаем пароль (хешируется)
+        user.set_password(password)
+
+        # 5. Собираем, шифруем и сохраняем остальные данные
+        data_to_encrypt = {
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name
+        }
+        user.save_encrypted_data(data_to_encrypt)  # Используем наш новый метод
+
+        # 6. Сохраняем email в стандартное поле
+        # в *зашифрованном* виде (или как маркер)
+        # Это нужно, если 'email' у тебя unique=True
+        user.email = f"encrypted_{user.id}@placeholder.com"
+        # ...или просто сохрани зашифрованный email (но без .utils.encryption)
+        # user.email = encryptor.encrypt_data(email.encode('utf-8'))[:100] # Плохая идея
+
+        # Сохраняем пользователя
+        user.save()
         return user
 
 class UserLoginSerializer(serializers.Serializer):
@@ -52,11 +81,29 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    email = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login')
-        read_only_fields = ('id', 'date_joined', 'last_login')
+        read_only_fields = ('id', 'date_joined', 'last_login', 'email', 'first_name', 'last_name')
 
+    def get_decrypted_data(self, obj):
+        # Кэшируем результат, чтобы не дешифровать 3 раза
+        if not hasattr(self, '_decrypted_data'):
+            self._decrypted_data = obj.get_decrypted_data()
+        return self._decrypted_data
+
+    def get_email(self, obj):
+        return self.get_decrypted_data(obj).get('email')
+
+    def get_first_name(self, obj):
+        return self.get_decrypted_data(obj).get('first_name')
+
+    def get_last_name(self, obj):
+        return self.get_decrypted_data(obj).get('last_name')
 
 class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)
