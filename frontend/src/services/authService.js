@@ -99,19 +99,24 @@ const authService = {
         return response.data;
     },
 
-    // Получение списка файлов
+    // Получение списка файлов (метаданные)
     async getUserFiles() {
         const response = await apiClient.get('/files/');
         return response.data;
     },
 
-    // --- НОВАЯ ФУНКЦИЯ ДЛЯ LABA 4 ---
+    // Получение контента файла для просмотра (Blob)
+    async getFileContent(fileId) {
+        const response = await apiClient.get(`/files/${fileId}/content/`, {
+            responseType: 'blob', // Важно: ожидаем бинарные данные
+        });
+        return response.data;
+    },
+
     async getWeather() {
-        // Вызываем API-эндпоинт, который мы создали
         const response = await apiClient.get('/weather/');
         return response.data;
     },
-    // -------------------------------
 };
 
 export default authService;

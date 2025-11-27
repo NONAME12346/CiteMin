@@ -6,7 +6,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from .models import WeatherData
 from .serializers import WeatherSerializer
 
@@ -121,8 +122,7 @@ def file_upload_view(request):
         description = serializer.validated_data.get('description', '')
 
         try:
-            # ИСПРАВЛЕНИЕ: Создаем объект и передаем данные вручную,
-            # так как _file_data не является полем модели и create() его не примет
+            # Создаем объект модели
             user_file = UserFile(
                 user=request.user,
                 original_name=file_obj.name,
@@ -130,8 +130,9 @@ def file_upload_view(request):
                 content_type=file_obj.content_type,
                 description=description
             )
-            # Передаем байты файла для шифрования в методе save()
+            # Передаем данные для шифрования во временный атрибут
             user_file._file_data = file_obj.read()
+            # Сохраняем (шифрование произойдет в методе save модели)
             user_file.save()
 
             log_user_action(request.user, 'file_upload', {
@@ -161,7 +162,7 @@ def file_upload_view(request):
 @permission_classes([permissions.IsAuthenticated])
 def user_files_view(request):
     """
-    Эндпоинт для получения списка файлов пользователя
+    Эндпоинт для получения списка файлов пользователя (метаданные)
     """
     files = UserFile.objects.filter(user=request.user)
 
@@ -175,6 +176,34 @@ def user_files_view(request):
     } for f in files]
 
     return Response(files_data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def download_file_view(request, file_id):
+    """
+    Расшифровывает и отдает контент файла для просмотра/воспроизведения.
+    Возвращает бинарные данные (blob).
+    """
+    # Получаем файл, убедившись, что он принадлежит текущему пользователю
+    user_file = get_object_or_404(UserFile, id=file_id, user=request.user)
+
+    try:
+        # Дешифруем данные (возвращает bytes)
+        decrypted_content = user_file.get_decrypted_data()
+
+        # Формируем HTTP ответ с правильным Content-Type (например, image/jpeg)
+        response = HttpResponse(decrypted_content, content_type=user_file.content_type)
+
+        # Заголовок inline говорит браузеру попытаться открыть файл (показать картинку/плеер),
+        # а не предлагать сразу скачать его на диск.
+        response['Content-Disposition'] = f'inline; filename="{user_file.original_name}"'
+
+        return response
+
+    except Exception as e:
+        log_security_event('file_download_error', request, {'file_id': file_id, 'error': str(e)})
+        return Response({'error': 'Ошибка при получении файла'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
