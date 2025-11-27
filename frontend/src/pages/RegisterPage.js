@@ -29,9 +29,6 @@ const RegisterPage = () => {
         password2: false
     });
 
-    const [imageFile, setImageFile] = useState(null);
-    const [audioFile, setAudioFile] = useState(null);
-
     const { register } = useAuth();
     const navigate = useNavigate();
 
@@ -81,7 +78,6 @@ const RegisterPage = () => {
             [name]: value
         });
 
-        // Очищаем ошибки при изменении поля
         if (errors[name]) {
             setErrors({
                 ...errors,
@@ -96,21 +92,8 @@ const RegisterPage = () => {
             ...prev,
             [name]: true
         }));
-
-        // Валидация на blur
         validateField(name, formData[name]);
     };
-
-
-    const handleFileChange = (e) => {
-        const { name, files } = e.target;
-        if (name === 'image') {
-            setImageFile(files[0] || null);
-        } else if (name === 'audio') {
-            setAudioFile(files[0] || null);
-        }
-    };
-
 
     const validateField = (name, value) => {
         const fieldErrors = [];
@@ -149,7 +132,6 @@ const RegisterPage = () => {
                 break;
 
             default:
-                // Для полей без специальной валидации
                 break;
         }
 
@@ -167,20 +149,11 @@ const RegisterPage = () => {
         }
     };
 
-
-
     const validateForm = () => {
         const newErrors = {};
 
-        // Валидация обязательных полей
-        if (!formData.username.trim()) {
-            newErrors.username = ['Имя пользователя обязательно'];
-        }
-
-        if (!formData.email.trim()) {
-            newErrors.email = ['Email обязателен'];
-        }
-
+        if (!formData.username.trim()) newErrors.username = ['Имя пользователя обязательно'];
+        if (!formData.email.trim()) newErrors.email = ['Email обязателен'];
         if (!formData.password) {
             newErrors.password = ['Пароль обязателен'];
         } else if (!passwordValidation.isValid) {
@@ -200,7 +173,6 @@ const RegisterPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Запускаем валидацию перед отправкой
         if (!validateForm()) {
             return;
         }
@@ -208,39 +180,20 @@ const RegisterPage = () => {
         setLoading(true);
         setErrors({});
 
-        // Создаем объект FormData для отправки файлов и текста
         const registrationData = new FormData();
-
-        // Добавляем текстовые поля
         registrationData.append('username', formData.username);
         registrationData.append('email', formData.email);
         registrationData.append('password', formData.password);
         registrationData.append('password2', formData.password2);
 
-        // Добавляем необязательные поля, если они заполнены
         if (formData.first_name) registrationData.append('first_name', formData.first_name);
         if (formData.last_name) registrationData.append('last_name', formData.last_name);
 
-        // Добавляем файлы, только если они были выбраны пользователем
-        if (imageFile) {
-            registrationData.append('image', imageFile);
-        }
-
-        if (audioFile) {
-            registrationData.append('audio', audioFile);
-        }
-
         try {
-            // Отправляем FormData в функцию регистрации
-            // (authService.register должен быть обновлен, как мы обсуждали)
             await register(registrationData);
-
-            // При успешной регистрации переходим на страницу входа
             navigate('/login');
         } catch (error) {
             console.error('Registration failed:', error);
-
-            // Обработка ошибок от сервера
             if (error.response && error.response.data) {
                 setErrors(error.response.data);
             } else {
@@ -255,10 +208,8 @@ const RegisterPage = () => {
 
     const getFieldError = (fieldName) => {
         if (fieldName === 'password' && formData.password && !passwordValidation.isValid) {
-            // Показываем ошибки валидации пароля
             return passwordValidation.errors.join(', ');
         }
-
         if (errors[fieldName]) {
             return Array.isArray(errors[fieldName])
                 ? errors[fieldName].join(', ')
@@ -267,24 +218,18 @@ const RegisterPage = () => {
         return null;
     };
 
-
     const isFieldValid = (fieldName) => {
         if (fieldName === 'password') {
-            // Для поля пароля: зеленый только если пароль валидный И поле было затронуто
             return passwordValidation.isValid && touched.password;
         }
         return !errors[fieldName] && touched[fieldName];
     };
 
-
-
     const isFieldInvalid = (fieldName) => {
         if (fieldName === 'password') {
-            // Для поля пароля: красный если пароль невалидный И поле не пустое
             return !passwordValidation.isValid && formData.password.length > 0;
         }
         if (fieldName === 'password2') {
-            // Для подтверждения пароля: красный если пароли не совпадают И поле не пустое
             return formData.password2.length > 0 && formData.password !== formData.password2;
         }
         return !!errors[fieldName] && touched[fieldName];
@@ -292,34 +237,20 @@ const RegisterPage = () => {
 
     const getFieldClassName = (fieldName) => {
         if (fieldName === 'password') {
-            if (formData.password.length === 0) {
-                return ''; // Пустое поле - обычный стиль
-            } else if (passwordValidation.isValid) {
-                return 'valid'; // Валидный пароль - зеленый
-            } else {
-                return 'invalid'; // Невалидный пароль - красный
-            }
+            if (formData.password.length === 0) return '';
+            else if (passwordValidation.isValid) return 'valid';
+            else return 'invalid';
         }
 
         if (fieldName === 'password2') {
-            if (formData.password2.length === 0) {
-                return ''; // Пустое поле - обычный стиль
-            } else if (formData.password2 === formData.password && formData.password.length > 0) {
-                return 'valid'; // Пароли совпадают - зеленый
-            } else {
-                return 'invalid'; // Пароли не совпадают - красный
-            }
+            if (formData.password2.length === 0) return '';
+            else if (formData.password2 === formData.password && formData.password.length > 0) return 'valid';
+            else return 'invalid';
         }
 
-
-        // Для остальных полей
-        if (!touched[fieldName]) {
-            return ''; // Поле не затронуто - обычный стиль
-        } else if (errors[fieldName]) {
-            return 'invalid'; // Есть ошибки - красный
-        } else {
-            return 'valid'; // Нет ошибок - зеленый
-        }
+        if (!touched[fieldName]) return '';
+        else if (errors[fieldName]) return 'invalid';
+        else return 'valid';
     };
 
     return (
@@ -399,33 +330,6 @@ const RegisterPage = () => {
                             disabled={loading}
                         />
                     </div>
-
-                    <div className="form-group">
-                        <label htmlFor="image">Аватар (изображение)</label>
-                        <input
-                            type="file"
-                            id="image"
-                            name="image"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            disabled={loading}
-                            className="form-control"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="audio">Аудио-файл</label>
-                        <input
-                            type="file"
-                            id="audio"
-                            name="audio"
-                            accept="audio/*"
-                            onChange={handleFileChange}
-                            disabled={loading}
-                            className="form-control"
-                        />
-                    </div>
-
 
                     <div className="form-group">
                         <label htmlFor="password">Пароль *</label>

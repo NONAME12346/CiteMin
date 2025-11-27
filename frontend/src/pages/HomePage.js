@@ -21,11 +21,17 @@ const HomePage = () => {
                             <p>Email: {user.email}</p>
                         </div>
                         <div className="action-buttons">
-                            {/* --- НОВАЯ ССЫЛКА ДЛЯ LABA 4 --- */}
-                            <Link to="/dashboard" className="btn btn-info" style={{ marginRight: '15px' }}>
+                            <Link to="/dashboard" className="btn btn-info" style={{ marginRight: '10px' }}>
                                 Погодный Дашборд 🌤️
                             </Link>
-                            {/* ------------------------------- */}
+                            {/* Новые кнопки для работы с файлами */}
+                            <Link to="/upload" className="btn btn-primary" style={{ marginRight: '10px' }}>
+                                Загрузить файл 📁
+                            </Link>
+                            <Link to="/files" className="btn btn-secondary" style={{ marginRight: '10px' }}>
+                                Мои файлы 🗃️
+                            </Link>
+
                             <button onClick={logout} className="btn btn-danger">
                                 Выйти
                             </button>

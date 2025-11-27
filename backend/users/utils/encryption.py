@@ -21,28 +21,34 @@ class DataEncryptor:
         self.fernet = Fernet(key)
 
     def encrypt_data(self, data):
-        """Шифрование текстовых данных"""
+        """Шифрование данных (принимает str или bytes)"""
         if isinstance(data, str):
             data = data.encode('utf-8')
         encrypted_data = self.fernet.encrypt(data)
         return encrypted_data
 
     def decrypt_data(self, encrypted_data):
-        """Дешифрование текстовых данных"""
+        """Дешифрование текстовых данных (возвращает строку)"""
         if encrypted_data is None:
             return None
         decrypted_data = self.fernet.decrypt(encrypted_data)
         return decrypted_data.decode('utf-8')
 
+    def decrypt_binary(self, encrypted_data):
+        """Дешифрование бинарных данных (возвращает bytes)"""
+        if encrypted_data is None:
+            return None
+        return self.fernet.decrypt(encrypted_data)
+
     def encrypt_file(self, file_path):
-        """Шифрование файла"""
+        """Шифрование файла по пути (не используется в текущей логике API, но полезно)"""
         with open(file_path, 'rb') as file:
             file_data = file.read()
         encrypted_data = self.fernet.encrypt(file_data)
         return encrypted_data
 
     def decrypt_file(self, encrypted_data, output_path):
-        """Дешифрование файла"""
+        """Дешифрование файла в путь"""
         decrypted_data = self.fernet.decrypt(encrypted_data)
         with open(output_path, 'wb') as file:
             file.write(decrypted_data)

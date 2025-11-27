@@ -24,58 +24,23 @@ from .utils.logger import log_user_action, log_api_call, log_security_event
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
-@parser_classes([MultiPartParser, FormParser])  # Разрешаем прием файлов
 def register_view(request):
     """
-    Эндпоинт для регистрации нового пользователя с поддержкой загрузки файлов
+    Эндпоинт для регистрации нового пользователя (только текстовые данные)
     """
-    # Логируем попытку регистрации
     log_api_call(request, 'register_view')
 
     if request.method == 'POST':
         serializer = UserRegistrationSerializer(data=request.data)
 
         if serializer.is_valid():
-            # 1. Создаем пользователя (текстовые данные)
             user = serializer.save()
 
-            # 2. Обрабатываем загруженные файлы (если есть)
-            image_file = request.FILES.get('image')
-            audio_file = request.FILES.get('audio')
-
-            try:
-                # Если прикреплен аватар
-                if image_file:
-                    UserFile.objects.create(
-                        user=user,
-                        original_name=image_file.name,
-                        _file_data=image_file.read(),
-                        file_size=image_file.size,
-                        content_type=image_file.content_type,
-                        description="Аватар пользователя"
-                    )
-
-                # Если прикреплено аудио
-                if audio_file:
-                    UserFile.objects.create(
-                        user=user,
-                        original_name=audio_file.name,
-                        _file_data=audio_file.read(),
-                        file_size=audio_file.size,
-                        content_type=audio_file.content_type,
-                        description="Аудио-файл регистрации"
-                    )
-            except Exception as e:
-                # ИСПРАВЛЕНО: передаем request в log_security_event
-                log_security_event('file_encryption_failed', request, {'error': str(e), 'user_id': user.id})
-
-            # Логируем успешную регистрацию
             log_user_action(user, 'registration_success', {
                 'username': user.username,
                 'email': user.email
             })
 
-            # Создаем JWT токены для автоматического входа
             refresh = RefreshToken.for_user(user)
 
             return Response({
@@ -91,8 +56,6 @@ def register_view(request):
                 }
             }, status=status.HTTP_201_CREATED)
 
-        # Если данные невалидны
-        # ИСПРАВЛЕНО: передаем request
         log_security_event('registration_failed', request, {'errors': serializer.errors})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -129,7 +92,6 @@ def login_view(request):
                 }
             })
         else:
-            # ИСПРАВЛЕНО: передаем request
             log_security_event('login_failed', request, {'username': username, 'reason': 'invalid_credentials'})
             return Response({'error': 'Неверные учетные данные'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -159,14 +121,18 @@ def file_upload_view(request):
         description = serializer.validated_data.get('description', '')
 
         try:
-            user_file = UserFile.objects.create(
+            # ИСПРАВЛЕНИЕ: Создаем объект и передаем данные вручную,
+            # так как _file_data не является полем модели и create() его не примет
+            user_file = UserFile(
                 user=request.user,
                 original_name=file_obj.name,
-                _file_data=file_obj.read(),
                 file_size=file_obj.size,
                 content_type=file_obj.content_type,
                 description=description
             )
+            # Передаем байты файла для шифрования в методе save()
+            user_file._file_data = file_obj.read()
+            user_file.save()
 
             log_user_action(request.user, 'file_upload', {
                 'file_id': user_file.id,
@@ -185,7 +151,6 @@ def file_upload_view(request):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            # ИСПРАВЛЕНО: передаем request
             log_security_event('file_upload_error', request, {'error': str(e)})
             return Response({'error': 'Ошибка при сохранении файла'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -218,16 +183,11 @@ def weather_view(request):
     """
     Возвращает текущую погоду и историю наблюдений
     """
-    # Получаем последние 20 записей для графика (отсортированы по дате убывания)
-    # Используем [:20][::-1] чтобы получить 20 последних, но развернуть их
-    # в хронологическом порядке (слева направо) для графика
     queryset = WeatherData.objects.all()[:20]
     history_data = WeatherSerializer(queryset, many=True).data
-
-    # Текущая погода - это самая первая запись (так как сортировка -date)
     current_weather = history_data[0] if history_data else None
 
     return Response({
         'current': current_weather,
-        'history': history_data[::-1]  # Разворачиваем список для графика
+        'history': history_data[::-1]
     })

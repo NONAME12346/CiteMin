@@ -4,7 +4,6 @@ from .utils.encryption import encryptor
 import json
 
 
-
 class CustomUser(AbstractUser):
     """
     Кастомная модель пользователя с поддержкой шифрования данных
@@ -26,7 +25,6 @@ class CustomUser(AbstractUser):
         verbose_name="Метаданные файлов"
     )
 
-    # Важно: related_name для избежания конфликтов
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name='groups',
@@ -53,13 +51,11 @@ class CustomUser(AbstractUser):
 
     def save_encrypted_data(self, data):
         """Метод для сохранения зашифрованных текстовых данных"""
-        # --- РЕАЛИЗОВАТЬ ---
         try:
             # Сериализуем dict в JSON-строку, потом шифруем
             data_json = json.dumps(data)
             self.encrypted_data = encryptor.encrypt_data(data_json.encode('utf-8'))
         except Exception as e:
-            # Обработай ошибку (например, логирование)
             print(f"Failed to encrypt data: {e}")
 
     def get_decrypted_data(self):
@@ -69,23 +65,21 @@ class CustomUser(AbstractUser):
         try:
             encrypted_data = self.encrypted_data
 
-            # --- ИСПРАВЛЕНИЕ: ПРОВЕРКА ТИПА ---
-            # BinaryField иногда возвращает str вместо bytes. Конвертируем обратно:
+            # Защита от разного поведения драйверов БД с BinaryField
             if isinstance(encrypted_data, str):
-                encrypted_data = encrypted_data.encode('latin-1')  # Используй кодировку, в которой сохраняет Django
-            # ---------------------------------
+                encrypted_data = encrypted_data.encode('latin-1')
+            elif isinstance(encrypted_data, memoryview):
+                encrypted_data = encrypted_data.tobytes()
 
-            decrypted_bytes = encryptor.decrypt_data(encrypted_data)
+            # Дешифруем в строку
+            decrypted_str = encryptor.decrypt_data(encrypted_data)
 
-            # Если decryptor вернул пустые байты, значит данные пустые
-            if decrypted_bytes == b'':
+            if not decrypted_str:
                 return {}
 
-            data_json = decrypted_bytes.decode('utf-8')
-            return json.loads(data_json)
+            return json.loads(decrypted_str)
         except Exception as e:
-            # Выводим ошибку, чтобы понять, что пошло не так
-            print(f"Failed to decrypt data: {e}")
+            print(f"Failed to decrypt user data: {e}")
             return {}
 
 
@@ -115,12 +109,14 @@ class UserFile(models.Model):
         # Шифруем данные перед сохранением
         if not self.pk:  # Только для новых файлов
             if hasattr(self, '_file_data'):
+                # _file_data - временный атрибут, передаваемый из view
                 self.encrypted_data = encryptor.encrypt_data(self._file_data)
         super().save(*args, **kwargs)
 
     def get_decrypted_data(self):
-        """Получение дешифрованных данных файла"""
-        return encryptor.decrypt_data(self.encrypted_data)
+        """Получение дешифрованных данных файла (байты)"""
+        # Используем decrypt_binary, так как файлы могут быть не текстом
+        return encryptor.decrypt_binary(self.encrypted_data)
 
 class WeatherData(models.Model):
     """

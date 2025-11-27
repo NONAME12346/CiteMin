@@ -37,13 +37,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
 
         # 2. Извлекаем поля для шифрования
-        # (username оставляем в validated_data, он не шифруется)
         email = validated_data.pop('email')
         first_name = validated_data.pop('first_name', '')
         last_name = validated_data.pop('last_name', '')
 
         # 3. Создаем пользователя только с НЕШИФРУЕМЫМИ полями
-        # (validated_data теперь содержит только 'username')
         user = CustomUser.objects.create(**validated_data)
 
         # 4. Устанавливаем пароль (хешируется)
@@ -55,14 +53,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'first_name': first_name,
             'last_name': last_name
         }
-        user.save_encrypted_data(data_to_encrypt)  # Используем наш новый метод
+        user.save_encrypted_data(data_to_encrypt)
 
-        # 6. Сохраняем email в стандартное поле
-        # в *зашифрованном* виде (или как маркер)
-        # Это нужно, если 'email' у тебя unique=True
+        # 6. Сохраняем email как маркер (или можно хранить хеш для поиска)
         user.email = f"encrypted_{user.id}@placeholder.com"
-        # ...или просто сохрани зашифрованный email (но без .utils.encryption)
-        # user.email = encryptor.encrypt_data(email.encode('utf-8'))[:100] # Плохая идея
 
         # Сохраняем пользователя
         user.save()

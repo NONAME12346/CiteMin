@@ -5,7 +5,9 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import WeatherDashboard from './pages/WeatherDashboard'; // <-- НОВЫЙ ИМПОРТ
+import WeatherDashboard from './pages/WeatherDashboard';
+import FileUploadPage from './pages/FileUploadPage'; // Создайте этот файл
+import UserFilesPage from './pages/UserFilesPage';   // Создайте этот файл
 import './App.css';
 
 // Компонент для защищенных маршрутов
@@ -23,14 +25,13 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!isAuthenticated) {
-        // Сохраняем текущее местоположение для редиректа после авторизации
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return children;
 };
 
-// Компонент для публичных маршрутов (только для неавторизованных)
+// Компонент для публичных маршрутов
 const PublicRoute = ({ children }) => {
     const { isAuthenticated, loading } = useAuth();
     const location = useLocation();
@@ -45,7 +46,6 @@ const PublicRoute = ({ children }) => {
     }
 
     if (isAuthenticated) {
-        // Если пользователь уже авторизован, перенаправляем на главную или откуда пришел
         const from = location.state?.from?.pathname || '/';
         return <Navigate to={from} replace />;
     }
@@ -84,7 +84,8 @@ function App() {
                                 </PublicRoute>
                             }
                         />
-                        {/* --- НОВЫЙ ЗАЩИЩЕННЫЙ МАРШРУТ (LABA 4) --- */}
+
+                        {/* Защищенные маршруты */}
                         <Route
                             path="/dashboard"
                             element={
@@ -93,7 +94,23 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        {/* ------------------------------------------- */}
+                        <Route
+                            path="/upload"
+                            element={
+                                <ProtectedRoute>
+                                    <FileUploadPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/files"
+                            element={
+                                <ProtectedRoute>
+                                    <UserFilesPage />
+                                </ProtectedRoute>
+                            }
+                        />
+
                         <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
                 </div>
